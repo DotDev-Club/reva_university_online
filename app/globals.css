@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+/* ── Force light mode — this is a branded portal, no dark mode ── */
+:root {
+  color-scheme: light;
+
+  /* Primary orange */
+  --reva-orange:       #F07B10;
+  --reva-orange-dark:  #D46A08;
+  --reva-orange-light: #FEF3E6;
+  --reva-orange-50:    #FFF8F0;
+
+  /* Secondary teal */
+  --reva-teal:         #1B9E8B;
+  --reva-teal-light:   #E6F5F3;
+
+  /* Dark navy */
+  --reva-navy:         #1A2B4A;
+  --reva-navy-light:   #EEF1F6;
+
+  /* Neutrals */
+  --reva-bg:           #F5F6FA;
+  --reva-card:         #FFFFFF;
+  --reva-border:       #E8EAF0;
+  --reva-text:         #1F2937;
+  --reva-muted:        #6B7280;
+}
+
+@theme inline {
+  --color-background: #F5F6FA;
+  --color-foreground: #1F2937;
+  --font-sans: var(--font-geist-sans);
+}
+
+/* Hardcode body so dark-mode OS preference has zero effect */
+html, body {
+  background: #F5F6FA !important;
+  color: #1F2937 !important;
+  color-scheme: light !important;
+}
+
+.btn-reva {
+  background: var(--reva-orange);
+  color: #fff;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1.25rem;
+  font-weight: 500;
+  font-size: 0.875rem;
+  transition: background 0.15s;
+  display: inline-block;
+}
+.btn-reva:hover:not(:disabled) { background: var(--reva-orange-dark); }
+.btn-reva:disabled { opacity: 0.55; cursor: not-allowed; }
