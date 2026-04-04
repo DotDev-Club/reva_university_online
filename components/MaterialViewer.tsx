@@ -17,9 +17,10 @@ interface Props {
   isFreeUnit2: boolean       // true = show only first freeUnit2Pct% of pages
   freeUnit2Pct: number
   needsOcr: boolean
+  watermark?: string         // student email — shown diagonally on every page
 }
 
-export default function MaterialViewer({ materialId, unitNo, isFreeUnit2, freeUnit2Pct, needsOcr }: Props) {
+export default function MaterialViewer({ materialId, unitNo, isFreeUnit2, freeUnit2Pct, needsOcr, watermark }: Props) {
   const [signedUrl, setSignedUrl] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [numPages, setNumPages] = useState<number | null>(null)
@@ -92,13 +93,37 @@ export default function MaterialViewer({ materialId, unitNo, isFreeUnit2, freeUn
               { length: isFreeUnit2 ? maxPageForFreeUser(numPages) : numPages },
               (_, i) => i + 1
             ).map(pageNum => (
-              <Page
-                key={pageNum}
-                pageNumber={pageNum}
-                width={Math.min(680, typeof window !== 'undefined' ? window.innerWidth - 64 : 680)}
-                renderAnnotationLayer={false}  // Disable clickable links that could expose URLs
-                renderTextLayer={false}        // Disable text selection
-              />
+              <div key={pageNum} className="relative">
+                <Page
+                  pageNumber={pageNum}
+                  width={Math.min(680, typeof window !== 'undefined' ? window.innerWidth - 64 : 680)}
+                  renderAnnotationLayer={false}
+                  renderTextLayer={false}
+                />
+                {/* Watermark overlay — traced back to student if screenshot shared */}
+                {watermark && (
+                  <div
+                    className="absolute inset-0 pointer-events-none select-none overflow-hidden"
+                    aria-hidden="true"
+                  >
+                    {Array.from({ length: 6 }, (_, i) => (
+                      <div
+                        key={i}
+                        className="absolute text-gray-400 font-mono text-xs opacity-20 whitespace-nowrap"
+                        style={{
+                          transform: 'rotate(-35deg)',
+                          top: `${10 + i * 18}%`,
+                          left: '-10%',
+                          width: '120%',
+                          letterSpacing: '0.15em',
+                        }}
+                      >
+                        {Array(4).fill(watermark).join('     ')}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             ))}
         </Document>
       </div>
