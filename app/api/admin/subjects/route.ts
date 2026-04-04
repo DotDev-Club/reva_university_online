@@ -20,14 +20,47 @@ export async function GET(request: NextRequest) {
   const deptId = searchParams.get('deptId')
   const semester = searchParams.get('semester')
 
-  let query = supabaseAdmin.from('subjects').select('id, name, subject_code, semester, is_active').order('subject_code')
-  if (deptId) query = query.eq('dept_id', deptId)
-  if (semester) query = query.eq('semester', Number(semester))
+  // Legacy subjects: direct dept_id match
+  let legacyQuery = supabaseAdmin
+    .from('subjects')
+    .select('id, name, subject_code, semester, is_active')
+    .order('subject_code')
+  if (deptId) legacyQuery = legacyQuery.eq('dept_id', deptId)
+  if (semester) legacyQuery = legacyQuery.eq('semester', Number(semester))
 
-  const { data, error } = await query
-  if (error) return NextResponse.json({ message: error.message }, { status: 500 })
+  // Scheme-linked subjects: subjects via scheme_subjects for this dept's schemes
+  let schemeSubjects: { id: string; name: string; subject_code: string; semester: number | null; is_active: boolean }[] = []
+  if (deptId) {
+    const semNum = semester ? Number(semester) : null
+    let ssQuery = supabaseAdmin
+      .from('scheme_subjects')
+      .select('semester, subject:subjects(id, name, subject_code, is_active), scheme:schemes!inner(dept_id)')
+      .eq('scheme.dept_id', deptId)
+      .eq('is_active', true)
+    if (semNum) ssQuery = ssQuery.eq('semester', semNum)
+    const { data: ssRows } = await ssQuery
+    for (const row of ssRows ?? []) {
+      const sub = Array.isArray(row.subject) ? row.subject[0] : row.subject as any
+      if (sub?.id) {
+        schemeSubjects.push({ id: sub.id, name: sub.name, subject_code: sub.subject_code, semester: row.semester, is_active: sub.is_active })
+      }
+    }
+  }
 
-  return NextResponse.json({ subjects: data })
+  const { data: legacy } = await legacyQuery
+
+  // Merge, deduplicate by id
+  const seen = new Set<string>()
+  const combined = []
+  for (const s of [...(legacy ?? []), ...schemeSubjects]) {
+    if (!seen.has(s.id)) {
+      seen.add(s.id)
+      combined.push(s)
+    }
+  }
+  combined.sort((a, b) => a.subject_code.localeCompare(b.subject_code))
+
+  return NextResponse.json({ subjects: combined })
 }
 
 export async function POST(request: NextRequest) {

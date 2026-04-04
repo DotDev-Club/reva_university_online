@@ -107,12 +107,14 @@ export default async function AdminOverviewPage() {
       </section>
 
       {/* Quick links */}
-      <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <section className="grid grid-cols-2 md:grid-cols-3 gap-3">
         {[
           { href: '/admin/upload', label: 'Upload Material', icon: '📤' },
           { href: '/admin/departments', label: 'Manage Depts', icon: '🏛' },
           { href: '/admin/subjects', label: 'Add Subject', icon: '📚' },
           { href: '/admin/mock-papers', label: 'Add Mock Paper', icon: '📝' },
+          { href: '/admin/schemes', label: 'Manage Schemes', icon: '🗂' },
+          { href: '/admin/schemes/import', label: 'Import Handbook', icon: '📖' },
         ].map(({ href, label, icon }) => (
           <Link
             key={href}

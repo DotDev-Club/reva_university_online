@@ -76,8 +76,8 @@ export async function POST(request: NextRequest) {
   let needsOcr = false
 
   try {
-    const pdfParseModule = await import('pdf-parse')
-    const pdfParse = (pdfParseModule as any).default ?? pdfParseModule
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const pdfParse = require('pdf-parse')
     const parsed = await pdfParse(fileBuffer)
     extractedText = parsed.text ?? ''
   } catch (err) {

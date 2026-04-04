@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
-import { getUserAccessFields, canAccessMaterial } from '@/lib/access-control'
+import { getUserAccessFields, canAccessMaterial, getSchemeSubjectSemester } from '@/lib/access-control'
 import { getConfig } from '@/lib/app-config'
 import MaterialViewer from '@/components/MaterialViewer'
 import QAPanel from '@/components/QAPanel'
@@ -35,12 +35,19 @@ export default async function SubjectPage({ params }: { params: Promise<{ id: st
     .eq('is_active', true)
     .order('unit_no')
 
-  const [userFields, priceInr] = await Promise.all([
+  const [userFields, priceInr, userProfile] = await Promise.all([
     getUserAccessFields(user.id),
     getConfig('subscription_price_inr'),
+    supabaseAdmin.from('users').select('scheme_id').eq('id', user.id).single(),
   ])
 
   if (!userFields) redirect('/login')
+
+  const schemeId = userProfile.data?.scheme_id ?? null
+
+  // Resolve semester for this subject within the user's scheme
+  // Falls back to subjects.semester for legacy users
+  const resolvedSemester = (await getSchemeSubjectSemester(subjectId, user.id, schemeId)) ?? subject.semester
 
   // Compute access for each unit server-side
   const unitsWithAccess = await Promise.all(
@@ -48,7 +55,7 @@ export default async function SubjectPage({ params }: { params: Promise<{ id: st
       const access = await canAccessMaterial(userFields, {
         is_free: mat.is_free,
         unit_no: mat.unit_no,
-        subject: { semester: subject.semester },
+        subject: { semester: resolvedSemester },
       })
       return { ...mat, access }
     })
@@ -60,7 +67,7 @@ export default async function SubjectPage({ params }: { params: Promise<{ id: st
     userFields.is_early_user ||
     (userFields.subscription_expires_at !== null &&
       new Date(userFields.subscription_expires_at) > new Date() &&
-      userFields.subscription_semester === subject.semester)
+      userFields.subscription_semester === resolvedSemester)
 
   const freeUnit2Pct = await getConfig('free_unit2_page_pct')
 

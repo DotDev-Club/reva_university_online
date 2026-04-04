@@ -73,6 +73,7 @@ export async function GET(request: NextRequest) {
       semester_auto_update_at: semesterAutoUpdateAt.toISOString(),
       is_early_user: claimed === true,
       email_verified: true,
+      scheme_id: meta.scheme_id ?? null,
     })
   } else {
     await supabaseAdmin

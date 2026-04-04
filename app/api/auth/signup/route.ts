@@ -6,17 +6,17 @@ import { createClient } from '@supabase/supabase-js'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 
 export async function POST(request: NextRequest) {
-  let body: { email: string; password: string; fullName: string; deptId: string; semesterCurrent: number }
+  let body: { email: string; password: string; fullName: string; deptId: string; semesterCurrent: number; admissionYear: number }
   try {
     body = await request.json()
   } catch {
     return NextResponse.json({ message: 'Invalid request body' }, { status: 400 })
   }
 
-  const { email, password, fullName, deptId, semesterCurrent } = body
+  const { email, password, fullName, deptId, semesterCurrent, admissionYear } = body
 
   // Validate inputs
-  if (!email || !password || !fullName || !deptId || !semesterCurrent) {
+  if (!email || !password || !fullName || !deptId || !semesterCurrent || !admissionYear) {
     return NextResponse.json({ message: 'All fields are required.' }, { status: 400 })
   }
   if (fullName.trim().length < 2) {
@@ -41,6 +41,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'Invalid department selected.' }, { status: 400 })
   }
 
+  // Resolve scheme_id from admission year + dept
+  const { data: scheme, error: schemeError } = await supabaseAdmin
+    .from('schemes')
+    .select('id')
+    .eq('dept_id', deptId)
+    .eq('batch_start', admissionYear)
+    .eq('is_active', true)
+    .eq('is_default', false)
+    .single()
+
+  if (schemeError || !scheme) {
+    return NextResponse.json({ message: 'No active scheme found for the selected batch year. Please contact support.' }, { status: 400 })
+  }
+
   // Create Supabase auth user — store profile data in user_metadata
   // Profile row is created in /auth/callback after email verification (Rule G1)
   const supabaseAuth = createClient(
@@ -57,6 +71,7 @@ export async function POST(request: NextRequest) {
         full_name: fullName.trim(),
         dept_id: deptId,
         semester_current: semesterCurrent,
+        scheme_id: scheme.id,
       },
     },
   })

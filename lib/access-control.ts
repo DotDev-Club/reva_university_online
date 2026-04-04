@@ -124,3 +124,36 @@ export async function markFirstAccess(userId: string): Promise<void> {
 export async function getUnit2PageLimit(): Promise<number> {
   return getConfig('free_unit2_page_pct')
 }
+
+// Resolve the semester a subject sits in for a given scheme.
+// Checks core scheme_subjects first, then the user's elective choices.
+// Returns null when not found — callers fall back to subjects.semester.
+export async function getSchemeSubjectSemester(
+  subjectId: string,
+  userId: string,
+  schemeId: string | null
+): Promise<number | null> {
+  if (!schemeId) return null
+
+  // Core (HC/DC) subjects and elective options
+  const { data: core } = await supabaseAdmin
+    .from('scheme_subjects')
+    .select('semester')
+    .eq('subject_id', subjectId)
+    .eq('scheme_id', schemeId)
+    .eq('is_active', true)
+    .maybeSingle()
+
+  if (core) return core.semester
+
+  // User's chosen elective that maps to this subject
+  const { data: choice } = await supabaseAdmin
+    .from('user_elective_choices')
+    .select('scheme_subjects!inner(semester)')
+    .eq('user_id', userId)
+    .eq('scheme_id', schemeId)
+    .eq('subject_id', subjectId)
+    .maybeSingle()
+
+  return (choice?.scheme_subjects as any)?.semester ?? null
+}

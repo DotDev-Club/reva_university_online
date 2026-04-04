@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 
 interface Department { id: string; name: string; full_name: string }
+interface Scheme { id: string; name: string; batch_start: number; batch_end: number }
 
 const inputCls = 'w-full rounded-lg border px-3 py-2.5 text-sm outline-none transition-all focus:ring-2 bg-white'
 const inputStyle = { borderColor: 'var(--reva-border)', '--tw-ring-color': 'var(--reva-orange)' } as any
@@ -13,10 +14,30 @@ export default function SignupForm({ departments }: { departments: Department[] 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [deptId, setDeptId] = useState('')
+  const [admissionYear, setAdmissionYear] = useState('')
+  const [schemes, setSchemes] = useState<Scheme[]>([])
+  const [schemesLoading, setSchemesLoading] = useState(false)
   const [semester, setSemester] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
+
+  async function loadSchemes(newDeptId: string) {
+    if (!newDeptId) { setSchemes([]); setAdmissionYear(''); return }
+    setSchemesLoading(true)
+    const res = await fetch(`/api/schemes?deptId=${newDeptId}`)
+    const data = await res.json()
+    setSchemes(data.schemes ?? [])
+    setAdmissionYear('')
+    setSchemesLoading(false)
+  }
+
+  function handleDeptChange(val: string) {
+    setDeptId(val)
+    setAdmissionYear('')
+    setSchemes([])
+    loadSchemes(val)
+  }
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault()
@@ -26,7 +47,14 @@ export default function SignupForm({ departments }: { departments: Department[] 
     const res = await fetch('/api/auth/signup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email.trim().toLowerCase(), password, fullName: fullName.trim(), deptId, semesterCurrent: Number(semester) }),
+      body: JSON.stringify({
+        email: email.trim().toLowerCase(),
+        password,
+        fullName: fullName.trim(),
+        deptId,
+        semesterCurrent: Number(semester),
+        admissionYear: Number(admissionYear),
+      }),
     })
     const data = await res.json()
 
@@ -56,6 +84,8 @@ export default function SignupForm({ departments }: { departments: Department[] 
       </div>
     )
   }
+
+  const noSchemesForDept = deptId && !schemesLoading && schemes.length === 0
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border p-8" style={{ borderColor: 'var(--reva-border)' }}>
@@ -87,25 +117,53 @@ export default function SignupForm({ departments }: { departments: Department[] 
             className={inputCls} style={inputStyle} />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--reva-text)' }}>Department</label>
-            <select required value={deptId} onChange={e => setDeptId(e.target.value)}
-              className={inputCls} style={inputStyle}>
-              <option value="">Select</option>
-              {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--reva-text)' }}>Semester</label>
-            <select required value={semester} onChange={e => setSemester(e.target.value)}
-              className={inputCls} style={inputStyle}>
-              <option value="">Select</option>
-              {Array.from({ length: 8 }, (_, i) => i + 1).map(s => (
-                <option key={s} value={s}>Semester {s}</option>
-              ))}
-            </select>
-          </div>
+        {/* Branch / Department */}
+        <div>
+          <label className="block text-sm font-medium mb-1" style={{ color: 'var(--reva-text)' }}>Branch / Department</label>
+          <select required value={deptId} onChange={e => handleDeptChange(e.target.value)}
+            className={inputCls} style={inputStyle}>
+            <option value="">Select branch</option>
+            {departments.map(d => <option key={d.id} value={d.id}>{d.name} — {d.full_name}</option>)}
+          </select>
+        </div>
+
+        {/* Admission year — cascade loads after dept */}
+        <div>
+          <label className="block text-sm font-medium mb-1" style={{ color: 'var(--reva-text)' }}>Admission Year (Batch)</label>
+          <select
+            required
+            value={admissionYear}
+            disabled={!deptId || schemesLoading}
+            onChange={e => setAdmissionYear(e.target.value)}
+            className={inputCls + ' disabled:opacity-50'}
+            style={inputStyle}
+          >
+            <option value="">
+              {schemesLoading ? 'Loading batches...' : !deptId ? 'Select branch first' : 'Select your batch'}
+            </option>
+            {schemes.map(s => (
+              <option key={s.id} value={s.batch_start}>
+                {s.batch_start}–{s.batch_end} batch
+              </option>
+            ))}
+          </select>
+          {noSchemesForDept && (
+            <p className="text-xs mt-1" style={{ color: 'var(--reva-orange)' }}>
+              No batches configured for this branch yet — contact support.
+            </p>
+          )}
+        </div>
+
+        {/* Current semester */}
+        <div>
+          <label className="block text-sm font-medium mb-1" style={{ color: 'var(--reva-text)' }}>Current Semester</label>
+          <select required value={semester} onChange={e => setSemester(e.target.value)}
+            className={inputCls} style={inputStyle}>
+            <option value="">Select semester</option>
+            {Array.from({ length: 8 }, (_, i) => i + 1).map(s => (
+              <option key={s} value={s}>Semester {s}</option>
+            ))}
+          </select>
         </div>
 
         {error && (
@@ -114,7 +172,11 @@ export default function SignupForm({ departments }: { departments: Department[] 
           </div>
         )}
 
-        <button type="submit" disabled={loading} className="btn-reva w-full py-2.5 text-center">
+        <button
+          type="submit"
+          disabled={loading || !!noSchemesForDept}
+          className="btn-reva w-full py-2.5 text-center"
+        >
           {loading ? 'Creating account...' : 'Create Account'}
         </button>
       </form>

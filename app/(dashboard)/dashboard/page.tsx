@@ -12,7 +12,7 @@ export default async function DashboardPage() {
 
   let { data: profile } = await supabaseAdmin
     .from('users')
-    .select('full_name, dept_id, semester_current, subscription_semester, subscription_expires_at, is_early_user, email_verified')
+    .select('full_name, dept_id, semester_current, subscription_semester, subscription_expires_at, is_early_user, email_verified, scheme_id')
     .eq('id', user.id)
     .single()
 
@@ -32,10 +32,11 @@ export default async function DashboardPage() {
       semester_auto_update_at: semesterAutoUpdateAt.toISOString(),
       is_early_user: claimed === true,
       email_verified: true,
+      scheme_id: meta.scheme_id ?? null,
     })
     const { data: newProfile } = await supabaseAdmin
       .from('users')
-      .select('full_name, dept_id, semester_current, subscription_semester, subscription_expires_at, is_early_user, email_verified')
+      .select('full_name, dept_id, semester_current, subscription_semester, subscription_expires_at, is_early_user, email_verified, scheme_id')
       .eq('id', user.id)
       .single()
     profile = newProfile
@@ -57,13 +58,61 @@ export default async function DashboardPage() {
     )
   }
 
-  const { data: subjects } = await supabaseAdmin
-    .from('subjects')
-    .select('id, name, subject_code, semester')
-    .eq('dept_id', profile.dept_id)
-    .eq('semester', profile.semester_current)
-    .eq('is_active', true)
-    .order('subject_code')
+  // Scheme-aware subject query: core (non-elective) subjects for this semester
+  let subjects: { id: string; name: string; subject_code: string; semester: number }[] | null = null
+  if (profile.scheme_id) {
+    const { data: coreRows } = await supabaseAdmin
+      .from('scheme_subjects')
+      .select('semester, subject:subjects(id, name, subject_code)')
+      .eq('scheme_id', profile.scheme_id)
+      .eq('semester', profile.semester_current)
+      .eq('is_elective', false)
+      .eq('is_active', true)
+    subjects = (coreRows ?? []).map(r => ({
+      ...(Array.isArray(r.subject) ? r.subject[0] : r.subject) as any,
+      semester: r.semester,
+    }))
+
+    // Also include the student's chosen electives for this semester
+    const { data: chosenElectives } = await supabaseAdmin
+      .from('user_elective_choices')
+      .select('elective_group, scheme_subjects!inner(semester, subject:subjects(id, name, subject_code))')
+      .eq('user_id', user.id)
+      .eq('scheme_id', profile.scheme_id)
+    const electiveSubjects = (chosenElectives ?? [])
+      .map(r => {
+        const ss = Array.isArray(r.scheme_subjects) ? r.scheme_subjects[0] : r.scheme_subjects
+        if (!ss || ss.semester !== profile.semester_current) return null
+        const sub = Array.isArray(ss.subject) ? ss.subject[0] : ss.subject
+        return { ...(sub as any), semester: ss.semester }
+      })
+      .filter(Boolean) as typeof subjects
+    subjects = [...(subjects ?? []), ...electiveSubjects]
+    subjects.sort((a, b) => a.subject_code.localeCompare(b.subject_code))
+
+    // Count pending elective slots (for the prompt card count)
+    const { data: electiveOptions } = await supabaseAdmin
+      .from('scheme_subjects')
+      .select('elective_group')
+      .eq('scheme_id', profile.scheme_id)
+      .eq('semester', profile.semester_current)
+      .eq('is_elective', true)
+      .eq('is_active', true)
+    const allGroups = [...new Set((electiveOptions ?? []).map(r => r.elective_group))]
+    const chosenGroups = new Set((chosenElectives ?? []).map(r => r.elective_group))
+    const pendingElectiveGroups = allGroups.filter(g => !chosenGroups.has(g))
+    ;(profile as any).pendingElectiveGroups = pendingElectiveGroups
+  } else {
+    // Legacy fallback: no scheme assigned yet
+    const { data: legacySubjects } = await supabaseAdmin
+      .from('subjects')
+      .select('id, name, subject_code, semester')
+      .eq('dept_id', profile.dept_id)
+      .eq('semester', profile.semester_current)
+      .eq('is_active', true)
+      .order('subject_code')
+    subjects = legacySubjects
+  }
 
   const isSubscribed =
     profile.is_early_user ||
@@ -155,6 +204,19 @@ export default async function DashboardPage() {
           </div>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {/* Pending elective prompt cards */}
+            {((profile as any).pendingElectiveGroups ?? []).map((group: string) => (
+              <Link
+                key={`elective-${group}`}
+                href="/dashboard/settings#electives"
+                className="group bg-white rounded-2xl border-2 border-dashed p-5 hover:shadow-md transition-all flex flex-col items-center justify-center text-center gap-2"
+                style={{ borderColor: 'var(--reva-orange)' }}
+              >
+                <span className="text-2xl">🎓</span>
+                <p className="font-semibold text-sm" style={{ color: 'var(--reva-orange)' }}>Choose {group} Elective</p>
+                <p className="text-xs" style={{ color: 'var(--reva-muted)' }}>Tap to pick your elective subject</p>
+              </Link>
+            ))}
             {subjects.map((subject, i) => {
               const cardColors = [
                 { bg: 'var(--reva-teal)', light: 'var(--reva-teal-light)' },
