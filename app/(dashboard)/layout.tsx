@@ -6,6 +6,9 @@ import SignOutButton from '@/components/SignOutButton'
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+  // If not authenticated, send to login — but do NOT redirect authenticated
+  // users with missing profiles back to /login (that creates a redirect loop).
+  // Profile creation fallback lives in the dashboard page itself.
   if (!user) redirect('/login')
 
   return (

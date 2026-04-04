@@ -10,11 +10,36 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: profile } = await supabaseAdmin
+  let { data: profile } = await supabaseAdmin
     .from('users')
     .select('full_name, dept_id, semester_current, subscription_semester, subscription_expires_at, is_early_user, email_verified')
     .eq('id', user.id)
     .single()
+
+  // Fallback: auth callback may have been skipped (e.g. token_hash flow before fix).
+  // Create the profile row here rather than loop-redirecting to /login.
+  if (!profile) {
+    const meta = user.user_metadata ?? {}
+    const bumpMonths = 4.5
+    const semesterAutoUpdateAt = new Date(Date.now() + bumpMonths * 30.44 * 86400000)
+    const { data: claimed } = await supabaseAdmin.rpc('claim_early_user_slot')
+    await supabaseAdmin.from('users').insert({
+      id: user.id,
+      email: user.email!,
+      full_name: meta.full_name ?? user.email!.split('@')[0],
+      dept_id: meta.dept_id ?? null,
+      semester_current: meta.semester_current ?? 1,
+      semester_auto_update_at: semesterAutoUpdateAt.toISOString(),
+      is_early_user: claimed === true,
+      email_verified: true,
+    })
+    const { data: newProfile } = await supabaseAdmin
+      .from('users')
+      .select('full_name, dept_id, semester_current, subscription_semester, subscription_expires_at, is_early_user, email_verified')
+      .eq('id', user.id)
+      .single()
+    profile = newProfile
+  }
 
   if (!profile) redirect('/login')
 

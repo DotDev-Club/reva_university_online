@@ -46,7 +46,9 @@ export async function proxy(request: NextRequest) {
   }
 
   // Redirect authenticated users away from login/signup
-  if (user && (pathname === '/login' || pathname === '/signup')) {
+  // Only redirect if NOT coming from an error (avoids loop when profile is broken)
+  const hasError = request.nextUrl.searchParams.has('error')
+  if (user && !hasError && (pathname === '/login' || pathname === '/signup')) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 

@@ -29,6 +29,7 @@ export async function POST(request: NextRequest) {
   const subjectId = formData.get('subjectId') as string | null
   const unitNo = Number(formData.get('unitNo'))
   const title = formData.get('title') as string | null
+  const isImagePdf = formData.get('isImagePdf') === 'true'
 
   if (!file || !subjectId || !unitNo || !title) {
     return NextResponse.json({ message: 'file, subjectId, unitNo, and title are required' }, { status: 400 })
@@ -85,7 +86,8 @@ export async function POST(request: NextRequest) {
   }
 
   // Rule E3: If extracted_text < 100 chars, trigger OCR fallback
-  if (extractedText.trim().length < 100) {
+  // Exception: image/scan PDFs (mock papers, PYQs) — admin explicitly opted out of OCR warning
+  if (!isImagePdf && extractedText.trim().length < 100) {
     needsOcr = true
     try {
       const { createWorker } = await import('tesseract.js')
@@ -154,6 +156,8 @@ export async function POST(request: NextRequest) {
     isFree,
     message: needsOcr
       ? 'Uploaded but OCR required — text extraction below threshold. Review in admin panel.'
-      : 'Uploaded successfully.',
+      : isImagePdf
+        ? 'Uploaded successfully (image/scan PDF — text extraction skipped).'
+        : 'Uploaded successfully.',
   })
 }

@@ -25,6 +25,7 @@ export default function UploadForm({ departments }: { departments: Department[] 
   const [unitNo, setUnitNo] = useState('')
   const [title, setTitle] = useState('')
   const [file, setFile] = useState<File | null>(null)
+  const [isImagePdf, setIsImagePdf] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [result, setResult] = useState<UploadResult | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -70,6 +71,7 @@ export default function UploadForm({ departments }: { departments: Department[] 
     form.append('subjectId', subjectId)
     form.append('unitNo', unitNo)
     form.append('title', title)
+    if (isImagePdf) form.append('isImagePdf', 'true')
 
     const res = await fetch('/api/admin/upload', { method: 'POST', body: form })
     const data = await res.json()
@@ -200,6 +202,22 @@ export default function UploadForm({ departments }: { departments: Department[] 
           PDF only. Text is extracted server-side. If text &lt; 100 chars, OCR is flagged.
         </p>
       </div>
+
+      {/* Image PDF toggle */}
+      <label className="flex items-start gap-3 cursor-pointer select-none">
+        <input
+          type="checkbox"
+          checked={isImagePdf}
+          onChange={e => setIsImagePdf(e.target.checked)}
+          className="mt-0.5 h-4 w-4 rounded border-gray-300 accent-[#F07B10]"
+        />
+        <span className="text-sm text-gray-700">
+          <span className="font-medium">Image/Scan PDF</span>
+          <span className="block text-xs text-gray-400 mt-0.5">
+            For scanned mock papers and PYQs — skips OCR warning even if no text is extracted.
+          </span>
+        </span>
+      </label>
 
       {error && (
         <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
