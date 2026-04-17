@@ -11,6 +11,7 @@ const inputStyle = { borderColor: 'var(--reva-border)', '--tw-ring-color': 'var(
 
 export default function SignupForm({ departments }: { departments: Department[] }) {
   const [fullName, setFullName] = useState('')
+  const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [deptId, setDeptId] = useState('')
@@ -51,6 +52,7 @@ export default function SignupForm({ departments }: { departments: Department[] 
         email: email.trim().toLowerCase(),
         password,
         fullName: fullName.trim(),
+        phone: phone.trim(),
         deptId,
         semesterCurrent: Number(semester),
         admissionYear: Number(admissionYear),
@@ -90,17 +92,23 @@ export default function SignupForm({ departments }: { departments: Department[] 
   return (
     <div className="bg-white rounded-2xl shadow-sm border p-8" style={{ borderColor: 'var(--reva-border)' }}>
       <h2 className="text-xl font-bold mb-1" style={{ color: 'var(--reva-navy)' }}>Create your account</h2>
-      <p className="text-sm mb-6" style={{ color: 'var(--reva-muted)' }}>
-        First 150 students get{' '}
-        <span className="font-semibold" style={{ color: 'var(--reva-orange)' }}>free premium access</span>
-      </p>
+      <p className="text-sm mb-6" style={{ color: 'var(--reva-muted)' }}>Access your semester notes, mock papers &amp; AI Q&amp;A</p>
 
       <form onSubmit={handleSignup} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium mb-1" style={{ color: 'var(--reva-text)' }}>Full Name</label>
-          <input type="text" required autoComplete="name" placeholder="As on your college ID"
-            value={fullName} onChange={e => setFullName(e.target.value)}
-            className={inputCls} style={inputStyle} />
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--reva-text)' }}>Full Name</label>
+            <input type="text" required autoComplete="name" placeholder="As on college ID"
+              value={fullName} onChange={e => setFullName(e.target.value)}
+              className={inputCls} style={inputStyle} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--reva-text)' }}>Phone Number</label>
+            <input type="tel" required autoComplete="tel" placeholder="10-digit mobile"
+              pattern="[0-9]{10}" maxLength={10}
+              value={phone} onChange={e => setPhone(e.target.value)}
+              className={inputCls} style={inputStyle} />
+          </div>
         </div>
 
         <div>

@@ -30,7 +30,7 @@ export default function LandingPage() {
       {/* Hero */}
       <section className="flex-1 flex flex-col items-center justify-center px-4 py-20 text-center">
         <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold mb-6 border" style={{ background: 'var(--reva-orange-light)', color: 'var(--reva-orange-dark)', borderColor: '#FDDBB4' }}>
-          ★ First 150 students get FREE premium access
+          ★ Exclusively for Reva University Students
         </div>
 
         <h1 className="text-4xl md:text-5xl font-bold mb-4 leading-tight" style={{ color: 'var(--reva-navy)' }}>

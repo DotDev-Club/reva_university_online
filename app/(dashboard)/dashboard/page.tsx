@@ -159,13 +159,9 @@ export default async function DashboardPage() {
             </p>
           </div>
         </div>
-        {profile.is_early_user ? (
+        {isSubscribed ? (
           <span className="shrink-0 rounded-full px-3 py-1 text-xs font-bold" style={{ background: 'rgba(255,255,255,0.25)', color: '#fff' }}>
-            ★ Early Access
-          </span>
-        ) : isSubscribed ? (
-          <span className="shrink-0 rounded-full px-3 py-1 text-xs font-bold" style={{ background: 'rgba(255,255,255,0.25)', color: '#fff' }}>
-            Sem {profile.subscription_semester} · {daysRemaining}d left
+            {profile.is_early_user ? '✓ Access Active' : `Sem ${profile.subscription_semester} · ${daysRemaining}d left`}
           </span>
         ) : null}
       </div>
@@ -178,7 +174,7 @@ export default async function DashboardPage() {
               Unlock Semester {profile.semester_current} — ₹{priceInr}
             </p>
             <p className="text-sm mt-0.5" style={{ color: 'var(--reva-muted)' }}>
-              Units 2–4 · Mock Papers · AI Q&amp;A · 6 months access
+              Units 2–4 · Mock Papers · AI Q&amp;A · 6 months · this semester only
             </p>
           </div>
           <BuyAccessButton semester={profile.semester_current} priceInr={priceInr} />
@@ -190,7 +186,7 @@ export default async function DashboardPage() {
         {[
           { label: 'Current Semester', value: `Semester ${profile.semester_current}`, color: 'var(--reva-teal)', bg: 'var(--reva-teal-light)' },
           { label: 'Subjects', value: subjects?.length ?? 0, color: 'var(--reva-orange)', bg: 'var(--reva-orange-light)' },
-          { label: 'Subscription', value: isSubscribed ? (profile.is_early_user ? 'Free Access' : `${daysRemaining}d left`) : 'Not active', color: isSubscribed ? '#1B9E8B' : '#9B2D8E', bg: isSubscribed ? 'var(--reva-teal-light)' : '#F3E5F5' },
+          { label: 'Subscription', value: isSubscribed ? `${daysRemaining ?? '∞'}d left` : 'Not active', color: isSubscribed ? '#1B9E8B' : '#9B2D8E', bg: isSubscribed ? 'var(--reva-teal-light)' : '#F3E5F5' },
           { label: 'Mock Papers', value: mockPapers?.filter(p => p.released).length ?? 0, color: '#8B6914', bg: '#FDF3DC' },
         ].map(stat => (
           <div key={stat.label} className="bg-white rounded-2xl border p-4" style={{ borderColor: 'var(--reva-border)' }}>

@@ -48,13 +48,11 @@ export default async function SettingsPage() {
           <p className="text-xs text-gray-500">Email</p>
           <p className="text-sm text-gray-900">{profile.email}</p>
         </div>
-        {isSubscribed && (
+        {isSubscribed && profile.subscription_expires_at && (
           <div>
             <p className="text-xs text-gray-500">Subscription</p>
             <p className="text-sm text-gray-900">
-              {profile.is_early_user
-                ? 'Early Access (free)'
-                : `Semester ${profile.subscription_semester} — expires ${new Date(profile.subscription_expires_at!).toLocaleDateString('en-IN')}`}
+              Semester {profile.subscription_semester} — expires {new Date(profile.subscription_expires_at).toLocaleDateString('en-IN')}
             </p>
           </div>
         )}

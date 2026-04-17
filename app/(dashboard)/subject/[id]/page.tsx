@@ -1,23 +1,27 @@
 // Subject page — unit list with access states.
-// Dashboard query uses semester_current; access checks use subscription_semester (Rule C4).
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { getUserAccessFields, canAccessMaterial, getSchemeSubjectSemester } from '@/lib/access-control'
 import { getConfig } from '@/lib/app-config'
-import UnitAccordion from '@/components/UnitAccordion'
-import QAPanel from '@/components/QAPanel'
+import SubjectTabs from '@/components/SubjectTabs'
 import BuyAccessButton from '@/components/BuyAccessButton'
 
-export default async function SubjectPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function SubjectPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>
+  searchParams: Promise<{ tab?: string }>
+}) {
   const { id: subjectId } = await params
+  const { tab: initialTab } = await searchParams
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // Fetch subject
   const { data: subject } = await supabaseAdmin
     .from('subjects')
     .select('id, name, subject_code, semester, dept:departments(name)')
@@ -27,7 +31,6 @@ export default async function SubjectPage({ params }: { params: Promise<{ id: st
 
   if (!subject) notFound()
 
-  // Fetch materials (metadata only — no file_url exposed here)
   const { data: materials } = await supabaseAdmin
     .from('materials')
     .select('id, unit_no, title, topics, is_free, needs_ocr')
@@ -44,12 +47,8 @@ export default async function SubjectPage({ params }: { params: Promise<{ id: st
   if (!userFields) redirect('/login')
 
   const schemeId = userProfile.data?.scheme_id ?? null
-
-  // Resolve semester for this subject within the user's scheme
-  // Falls back to subjects.semester for legacy users
   const resolvedSemester = (await getSchemeSubjectSemester(subjectId, user.id, schemeId)) ?? subject.semester
 
-  // Compute access for each unit server-side
   const unitsWithAccess = await Promise.all(
     (materials ?? []).map(async mat => {
       const access = await canAccessMaterial(userFields, {
@@ -71,8 +70,18 @@ export default async function SubjectPage({ params }: { params: Promise<{ id: st
 
   const freeUnit2Pct = await getConfig('free_unit2_page_pct')
 
+  const unitGroups = Object.entries(
+    unitsWithAccess.reduce<Record<number, typeof unitsWithAccess>>((acc, mat) => {
+      if (!acc[mat.unit_no]) acc[mat.unit_no] = []
+      acc[mat.unit_no].push(mat)
+      return acc
+    }, {})
+  )
+    .sort(([a], [b]) => Number(a) - Number(b))
+    .map(([unit_no, mats]) => ({ unit_no: Number(unit_no), materials: mats }))
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 max-w-4xl">
       {/* Back + Breadcrumb */}
       <div className="flex items-center gap-3">
         <Link
@@ -89,64 +98,54 @@ export default async function SubjectPage({ params }: { params: Promise<{ id: st
         </div>
       </div>
 
-      {/* Subject header */}
-      <div className="bg-white rounded-2xl border p-5" style={{ borderColor: 'var(--reva-border)', borderTopWidth: 3, borderTopColor: 'var(--reva-orange)' }}>
-        <p className="text-xs font-mono mb-1" style={{ color: 'var(--reva-muted)' }}>{subject.subject_code} · Semester {subject.semester} · {(dept as any)?.name}</p>
-        <h1 className="text-xl font-bold" style={{ color: 'var(--reva-navy)' }}>{subject.name}</h1>
+      {/* Subject header card */}
+      <div
+        className="bg-white rounded-2xl border p-5 flex items-start justify-between gap-4"
+        style={{ borderColor: 'var(--reva-border)', borderTopWidth: 3, borderTopColor: 'var(--reva-orange)' }}
+      >
+        <div>
+          <p className="text-xs font-mono mb-1" style={{ color: 'var(--reva-muted)' }}>
+            {subject.subject_code} · Semester {subject.semester} · {(dept as any)?.name}
+          </p>
+          <h1 className="text-xl font-bold" style={{ color: 'var(--reva-navy)' }}>{subject.name}</h1>
+          <div className="flex items-center gap-3 mt-2">
+            <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--reva-teal-light)', color: 'var(--reva-teal)' }}>
+              Unit 1 Free
+            </span>
+            <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--reva-orange-light)', color: 'var(--reva-orange)' }}>
+              Units 2–4 Paid
+            </span>
+            <span className="text-xs" style={{ color: 'var(--reva-muted)' }}>
+              {unitGroups.length} units · {unitsWithAccess.length} materials
+            </span>
+          </div>
+        </div>
+        {!isSubscribedToThisSemester && (
+          <div className="shrink-0 text-right">
+            <p className="text-xs mb-2" style={{ color: 'var(--reva-muted)' }}>₹{priceInr} · 6 months</p>
+            <BuyAccessButton semester={subject.semester} priceInr={priceInr} />
+          </div>
+        )}
+        {isSubscribedToThisSemester && (
+          <span className="shrink-0 text-xs px-3 py-1 rounded-full font-medium" style={{ background: 'var(--reva-teal-light)', color: 'var(--reva-teal)' }}>
+            ✓ Unlocked
+          </span>
+        )}
       </div>
 
-      {/* Upgrade banner */}
-      {!isSubscribedToThisSemester && (
-        <div className="rounded-2xl border p-4 flex items-center justify-between gap-4" style={{ background: 'var(--reva-orange-light)', borderColor: '#FDDBB4', borderLeftWidth: 4, borderLeftColor: 'var(--reva-orange)' }}>
-          <div>
-            <p className="font-semibold text-sm" style={{ color: 'var(--reva-navy)' }}>
-              Unlock Units 2–4, Mock Papers &amp; AI Q&amp;A
-            </p>
-            <p className="text-xs mt-0.5" style={{ color: 'var(--reva-orange-dark)' }}>₹{priceInr} for Semester {subject.semester} · 6 months access</p>
-          </div>
-          <BuyAccessButton semester={subject.semester} priceInr={priceInr} />
-        </div>
-      )}
-
-      {/* Units */}
-      <section className="space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide" style={{ color: 'var(--reva-muted)' }}>Units</h2>
-        {unitsWithAccess.length === 0 ? (
-          <p className="text-gray-500 text-sm">No materials uploaded yet.</p>
-        ) : (
-          <UnitAccordion
-            units={Object.entries(
-              unitsWithAccess.reduce<Record<number, typeof unitsWithAccess>>((acc, mat) => {
-                if (!acc[mat.unit_no]) acc[mat.unit_no] = []
-                acc[mat.unit_no].push(mat)
-                return acc
-              }, {})
-            )
-              .sort(([a], [b]) => Number(a) - Number(b))
-              .map(([unit_no, materials]) => ({ unit_no: Number(unit_no), materials }))}
-            isEarlyUser={userFields.is_early_user}
-            subscriptionSemester={userFields.subscription_semester}
-            freeUnit2Pct={freeUnit2Pct}
-            watermark={user.email}
-          />
-        )}
-      </section>
-
-      {/* Claude Q&A */}
-      <section>
-        <h2 className="text-sm font-semibold uppercase tracking-wide mb-3" style={{ color: 'var(--reva-muted)' }}>
-          AI Q&amp;A — Ask about {subject.name}
-        </h2>
-        {isSubscribedToThisSemester ? (
-          <QAPanel subjectId={subject.id} subjectName={subject.name} />
-        ) : (
-          <div className="rounded-2xl border p-6 text-center bg-white" style={{ borderColor: 'var(--reva-border)' }}>
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl mx-auto mb-3" style={{ background: '#F3E5F5' }}>🤖</div>
-            <p className="font-medium text-sm" style={{ color: 'var(--reva-navy)' }}>AI Q&amp;A is a paid feature</p>
-            <p className="text-xs mt-1" style={{ color: 'var(--reva-muted)' }}>Upgrade to ask unlimited questions (up to 20/day).</p>
-          </div>
-        )}
-      </section>
+      {/* Tab layout: Units | Syllabus | AI Q&A */}
+      <SubjectTabs
+        units={unitGroups}
+        isEarlyUser={userFields.is_early_user}
+        subscriptionSemester={userFields.subscription_semester}
+        freeUnit2Pct={freeUnit2Pct}
+        watermark={user.email}
+        subjectId={subject.id}
+        subjectName={subject.name}
+        isSubscribed={isSubscribedToThisSemester}
+        allMaterials={unitsWithAccess}
+        initialTab={initialTab === 'ai' ? 'AI Q&A' : undefined}
+      />
     </div>
   )
 }
