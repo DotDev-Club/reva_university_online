@@ -18,7 +18,12 @@ export default async function AdminSchemesPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-gray-900">Schemes</h1>
+        <div className="flex items-center gap-3">
+          <a href="/admin" className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:border-gray-300 transition-colors text-gray-700">
+            ← Back
+          </a>
+          <h1 className="text-xl font-bold text-gray-900">Schemes</h1>
+        </div>
         <Link href="/admin/schemes/import"
           className="rounded-lg bg-[#1E3A5F] px-4 py-2 text-sm font-medium text-white hover:bg-[#163049]">
           Import Handbook →

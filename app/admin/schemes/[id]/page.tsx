@@ -33,10 +33,12 @@ export default async function SchemeDetailPage({ params }: { params: Promise<{ i
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <Link href="/admin/schemes" className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:border-gray-300 transition-colors text-gray-700">
+          ← Back
+        </Link>
         <div>
-          <Link href="/admin/schemes" className="text-xs text-gray-400 hover:text-gray-700">← Back to Schemes</Link>
-          <h1 className="text-xl font-bold text-gray-900 mt-1">{scheme.name}</h1>
+          <h1 className="text-xl font-bold text-gray-900">{scheme.name}</h1>
           <p className="text-sm text-gray-500">{dept?.name} · {scheme.batch_start}–{scheme.batch_end} batch</p>
         </div>
       </div>

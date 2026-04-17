@@ -10,11 +10,14 @@ export default async function ImportHandbookPage() {
 
   return (
     <div className="max-w-3xl space-y-6">
-      <div>
-        <h1 className="text-xl font-bold text-gray-900">Import Handbook</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Upload a branch handbook PDF. Claude extracts all subjects — you review and confirm before anything is saved.
-        </p>
+      <div className="flex items-center gap-3">
+        <a href="/admin/schemes" className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:border-gray-300 transition-colors text-gray-700">
+          ← Back
+        </a>
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">Import Handbook</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Upload a branch handbook PDF. Claude extracts all subjects — you review and confirm before anything is saved.</p>
+        </div>
       </div>
       <ImportForm departments={departments ?? []} />
     </div>

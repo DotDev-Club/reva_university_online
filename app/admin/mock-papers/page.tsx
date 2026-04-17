@@ -13,7 +13,12 @@ export default async function MockPapersPage() {
 
   return (
     <div className="max-w-4xl space-y-8">
-      <h1 className="text-2xl font-bold text-gray-900">Mock Papers</h1>
+      <div className="flex items-center gap-3">
+        <a href="/admin" className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:border-gray-300 transition-colors text-gray-700">
+          ← Back
+        </a>
+        <h1 className="text-2xl font-bold text-gray-900">Mock Papers</h1>
+      </div>
 
       {/* Add form */}
       <section className="bg-white rounded-xl border border-gray-200 p-6">

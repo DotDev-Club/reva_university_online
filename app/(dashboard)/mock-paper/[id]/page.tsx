@@ -40,20 +40,29 @@ export default async function MockPaperPage({ params }: { params: Promise<{ id: 
 
   return (
     <div className="space-y-6 max-w-4xl">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm text-gray-500">
-        <Link href="/dashboard" className="hover:text-gray-900">Dashboard</Link>
-        <span>/</span>
-        <span className="text-gray-900 font-medium">Mock Paper</span>
+      {/* Back + Breadcrumb */}
+      <div className="flex items-center gap-3">
+        <Link
+          href="/dashboard"
+          className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg border transition-colors hover:bg-white"
+          style={{ borderColor: 'var(--reva-border)', color: 'var(--reva-navy)' }}
+        >
+          ← Back
+        </Link>
+        <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--reva-muted)' }}>
+          <Link href="/dashboard" className="hover:underline">Dashboard</Link>
+          <span>/</span>
+          <span style={{ color: 'var(--reva-navy)', fontWeight: 500 }}>Mock Paper</span>
+        </div>
       </div>
 
       {/* Header */}
-      <div>
-        <p className="text-xs text-gray-400 font-mono">
+      <div className="bg-white rounded-2xl border p-5" style={{ borderColor: 'var(--reva-border)', borderTopWidth: 3, borderTopColor: 'var(--reva-teal)' }}>
+        <p className="text-xs font-mono mb-1" style={{ color: 'var(--reva-muted)' }}>
           {(subject as any)?.subject_code} · Semester {(subject as any)?.semester} · {(dept as any)?.name}
         </p>
-        <h1 className="text-2xl font-bold text-gray-900 mt-1">{(subject as any)?.name}</h1>
-        <p className="text-sm text-gray-500 mt-1">
+        <h1 className="text-xl font-bold" style={{ color: 'var(--reva-navy)' }}>{(subject as any)?.name}</h1>
+        <p className="text-sm mt-1" style={{ color: 'var(--reva-muted)' }}>
           Mock Paper · Exam:{' '}
           {examDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
         </p>

@@ -13,7 +13,12 @@ export default async function SubjectsPage() {
 
   return (
     <div className="max-w-3xl space-y-8">
-      <h1 className="text-2xl font-bold text-gray-900">Subjects</h1>
+      <div className="flex items-center gap-3">
+        <a href="/admin" className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:border-gray-300 transition-colors text-gray-700">
+          ← Back
+        </a>
+        <h1 className="text-2xl font-bold text-gray-900">Subjects</h1>
+      </div>
 
       {/* Add subject form */}
       <section className="bg-white rounded-xl border border-gray-200 p-6">

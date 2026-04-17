@@ -15,7 +15,12 @@ export default async function MaterialsPage() {
   return (
     <div className="max-w-5xl space-y-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Materials</h1>
+        <div className="flex items-center gap-3">
+          <a href="/admin" className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:border-gray-300 transition-colors text-gray-700">
+            ← Back
+          </a>
+          <h1 className="text-2xl font-bold text-gray-900">Materials</h1>
+        </div>
         <a
           href="/admin/upload"
           className="rounded-lg bg-[#1E3A5F] px-4 py-2 text-sm font-medium text-white hover:bg-[#163049] transition-colors"

@@ -73,27 +73,36 @@ export default async function SubjectPage({ params }: { params: Promise<{ id: st
 
   return (
     <div className="space-y-6">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm text-gray-500">
-        <Link href="/dashboard" className="hover:text-gray-900">Dashboard</Link>
-        <span>/</span>
-        <span className="text-gray-900 font-medium">{subject.name}</span>
+      {/* Back + Breadcrumb */}
+      <div className="flex items-center gap-3">
+        <Link
+          href="/dashboard"
+          className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg border transition-colors hover:bg-white"
+          style={{ borderColor: 'var(--reva-border)', color: 'var(--reva-navy)' }}
+        >
+          ← Back
+        </Link>
+        <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--reva-muted)' }}>
+          <Link href="/dashboard" className="hover:underline">Dashboard</Link>
+          <span>/</span>
+          <span style={{ color: 'var(--reva-navy)', fontWeight: 500 }}>{subject.name}</span>
+        </div>
       </div>
 
       {/* Subject header */}
-      <div>
-        <p className="text-xs text-gray-400 font-mono">{subject.subject_code} · Semester {subject.semester} · {(dept as any)?.name}</p>
-        <h1 className="text-2xl font-bold text-gray-900 mt-1">{subject.name}</h1>
+      <div className="bg-white rounded-2xl border p-5" style={{ borderColor: 'var(--reva-border)', borderTopWidth: 3, borderTopColor: 'var(--reva-orange)' }}>
+        <p className="text-xs font-mono mb-1" style={{ color: 'var(--reva-muted)' }}>{subject.subject_code} · Semester {subject.semester} · {(dept as any)?.name}</p>
+        <h1 className="text-xl font-bold" style={{ color: 'var(--reva-navy)' }}>{subject.name}</h1>
       </div>
 
       {/* Upgrade banner */}
       {!isSubscribedToThisSemester && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 flex items-center justify-between gap-4">
+        <div className="rounded-2xl border p-4 flex items-center justify-between gap-4" style={{ background: 'var(--reva-orange-light)', borderColor: '#FDDBB4', borderLeftWidth: 4, borderLeftColor: 'var(--reva-orange)' }}>
           <div>
-            <p className="font-medium text-amber-900 text-sm">
+            <p className="font-semibold text-sm" style={{ color: 'var(--reva-navy)' }}>
               Unlock Units 2–4, Mock Papers &amp; AI Q&amp;A
             </p>
-            <p className="text-amber-700 text-xs mt-0.5">₹{priceInr} for Semester {subject.semester} · 6 months access</p>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--reva-orange-dark)' }}>₹{priceInr} for Semester {subject.semester} · 6 months access</p>
           </div>
           <BuyAccessButton semester={subject.semester} priceInr={priceInr} />
         </div>
@@ -101,7 +110,7 @@ export default async function SubjectPage({ params }: { params: Promise<{ id: st
 
       {/* Units */}
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Units</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wide" style={{ color: 'var(--reva-muted)' }}>Units</h2>
         {unitsWithAccess.length === 0 ? (
           <p className="text-gray-500 text-sm">No materials uploaded yet.</p>
         ) : (
@@ -125,15 +134,16 @@ export default async function SubjectPage({ params }: { params: Promise<{ id: st
 
       {/* Claude Q&A */}
       <section>
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wide mb-3" style={{ color: 'var(--reva-muted)' }}>
           AI Q&amp;A — Ask about {subject.name}
         </h2>
         {isSubscribedToThisSemester ? (
           <QAPanel subjectId={subject.id} subjectName={subject.name} />
         ) : (
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-6 text-center">
-            <p className="text-gray-500 text-sm">AI Q&amp;A is a paid feature.</p>
-            <p className="text-gray-400 text-xs mt-1">Upgrade to ask unlimited questions (up to 20/day).</p>
+          <div className="rounded-2xl border p-6 text-center bg-white" style={{ borderColor: 'var(--reva-border)' }}>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl mx-auto mb-3" style={{ background: '#F3E5F5' }}>🤖</div>
+            <p className="font-medium text-sm" style={{ color: 'var(--reva-navy)' }}>AI Q&amp;A is a paid feature</p>
+            <p className="text-xs mt-1" style={{ color: 'var(--reva-muted)' }}>Upgrade to ask unlimited questions (up to 20/day).</p>
           </div>
         )}
       </section>

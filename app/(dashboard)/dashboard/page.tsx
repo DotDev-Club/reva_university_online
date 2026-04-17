@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { getConfig } from '@/lib/app-config'
 import BuyAccessButton from '@/components/BuyAccessButton'
+import ElectiveCard from '@/components/ElectiveCard'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -76,7 +77,7 @@ export default async function DashboardPage() {
     // Also include the student's chosen electives for this semester
     const { data: chosenElectives } = await supabaseAdmin
       .from('user_elective_choices')
-      .select('elective_group, scheme_subjects!inner(semester, subject:subjects(id, name, subject_code))')
+      .select('elective_group, subject_id, scheme_subjects!inner(semester, subject:subjects(id, name, subject_code))')
       .eq('user_id', user.id)
       .eq('scheme_id', profile.scheme_id)
     const electiveSubjects = (chosenElectives ?? [])
@@ -90,18 +91,30 @@ export default async function DashboardPage() {
     subjects = [...(subjects ?? []), ...electiveSubjects]
     subjects.sort((a, b) => a.subject_code.localeCompare(b.subject_code))
 
-    // Count pending elective slots (for the prompt card count)
+    // Fetch all elective options with subject details (for inline ElectiveCard)
     const { data: electiveOptions } = await supabaseAdmin
       .from('scheme_subjects')
-      .select('elective_group')
+      .select('elective_group, subject:subjects(id, name, subject_code)')
       .eq('scheme_id', profile.scheme_id)
       .eq('semester', profile.semester_current)
       .eq('is_elective', true)
       .eq('is_active', true)
-    const allGroups = [...new Set((electiveOptions ?? []).map(r => r.elective_group))]
-    const chosenGroups = new Set((chosenElectives ?? []).map(r => r.elective_group))
-    const pendingElectiveGroups = allGroups.filter(g => !chosenGroups.has(g))
-    ;(profile as any).pendingElectiveGroups = pendingElectiveGroups
+
+    // Group options by elective_group
+    const electiveGroupOptions: Record<string, { id: string; name: string; subject_code: string }[]> = {}
+    for (const row of electiveOptions ?? []) {
+      const g = row.elective_group!
+      const sub = Array.isArray(row.subject) ? row.subject[0] : row.subject as any
+      if (!electiveGroupOptions[g]) electiveGroupOptions[g] = []
+      if (sub) electiveGroupOptions[g].push(sub)
+    }
+
+    const allGroups = Object.keys(electiveGroupOptions)
+    const chosenGroupsMap = Object.fromEntries((chosenElectives ?? []).map(r => [r.elective_group, r.subject_id]))
+    ;(profile as any).electiveGroupOptions = electiveGroupOptions
+    ;(profile as any).chosenGroupsMap = chosenGroupsMap
+    // Show cards for ALL elective groups (chosen ones show current choice, unchosen prompt selection)
+    ;(profile as any).allElectiveGroups = allGroups
   } else {
     // Legacy fallback: no scheme assigned yet
     const { data: legacySubjects } = await supabaseAdmin
@@ -204,18 +217,15 @@ export default async function DashboardPage() {
           </div>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {/* Pending elective prompt cards */}
-            {((profile as any).pendingElectiveGroups ?? []).map((group: string) => (
-              <Link
+            {/* Elective selection cards — inline dropdown */}
+            {((profile as any).allElectiveGroups ?? []).map((group: string) => (
+              <ElectiveCard
                 key={`elective-${group}`}
-                href="/dashboard/settings#electives"
-                className="group bg-white rounded-2xl border-2 border-dashed p-5 hover:shadow-md transition-all flex flex-col items-center justify-center text-center gap-2"
-                style={{ borderColor: 'var(--reva-orange)' }}
-              >
-                <span className="text-2xl">🎓</span>
-                <p className="font-semibold text-sm" style={{ color: 'var(--reva-orange)' }}>Choose {group} Elective</p>
-                <p className="text-xs" style={{ color: 'var(--reva-muted)' }}>Tap to pick your elective subject</p>
-              </Link>
+                schemeId={profile.scheme_id!}
+                group={group}
+                options={(profile as any).electiveGroupOptions[group] ?? []}
+                chosenSubjectId={(profile as any).chosenGroupsMap[group]}
+              />
             ))}
             {subjects.map((subject, i) => {
               const cardColors = [
